@@ -37,6 +37,11 @@ public:
   static void encryptAESCtr(uint8_t *nonce, size_t numBytes, uint8_t *bytes);
 
   /**
+   * \brief  Creates a 16-byte nonce from packet ID and node ID for encryption/decryption
+   */
+  static void makeNonce(uint8_t *nonce, const uint32_t fromNode, const uint64_t packetId);
+
+  /**
    * \brief  Decrypt the 'src' bytes using AES128 cipher, using 'shared_secret' as key, with key length fixed at CIPHER_KEY_SIZE.
    *         'src_len' should be multiple of block size, as returned by 'encrypt()'.
    * \returns  The length in bytes put into 'dest'. (dest may contain trailing zero bytes in final block)
