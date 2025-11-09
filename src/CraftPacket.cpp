@@ -141,151 +141,6 @@ static int buildWirePacket(uint8_t* output_buffer, std::size_t buffer_size,
     return packet_len;
 }
 
-// Main function for testing
-int main() {
-    uint8_t packet_buffer[512];
-
-    // Create test message
-    const char* message = "AA";
-    DataObj data;
-    data.portnum = PORTNUM_TEXT_MESSAGE;
-    data.payload = (uint8_t*)message;
-    data.payload_len = strlen(message);
-    data.want_response = false;
-
-    int packet_len = buildWirePacket(
-        packet_buffer, sizeof(packet_buffer),
-        0xFFFFFFFF,     // to (broadcast)
-        0xC96ED214,     // from
-        7,              // hop_limit
-        true,           // want_ack
-        false,          // via_mqtt
-        0,              // hop_start
-        0xFB,           // channel
-        0,              // next_hop
-        0,              // relay_node
-        &data,          // data object (fixed: was NULL)
-        MINUTEMESH_KEY  // channel key
-    );
-
-    if (packet_len > 0) {
-        // Print packet in hex format (like JavaScript)
-        printf("=== C Packet Output ===\n");
-        printf("Packet length: %d bytes\n", packet_len);
-        printf("Hex: ");
-        for (int i = 0; i < packet_len; i++) {
-            printf("%02x", packet_buffer[i]);
-        }
-        printf("\n");
-
-        // Print just the protobuf part (after 16-byte header)
-        printf("Protobuf hex: ");
-        for (int i = 16; i < packet_len; i++) {
-            printf("%02x", packet_buffer[i]);
-        }
-        printf("\n\n");
-
-        // Parse and display the packet
-        printf("=== Packet Parsing ===\n");
-
-        // Parse header (first 16 bytes)
-        uint32_t to = (packet_buffer[0] << 24) | (packet_buffer[1] << 16) |
-                     (packet_buffer[2] << 8) | packet_buffer[3];
-        uint32_t from = (packet_buffer[4] << 24) | (packet_buffer[5] << 16) |
-                       (packet_buffer[6] << 8) | packet_buffer[7];
-        uint32_t packet_id = (packet_buffer[8] << 24) | (packet_buffer[9] << 16) |
-                            (packet_buffer[10] << 8) | packet_buffer[11];
-        uint8_t flags = packet_buffer[12];
-        uint8_t channel = packet_buffer[13];
-        uint8_t next_hop = packet_buffer[14];
-        uint8_t relay_node = packet_buffer[15];
-
-        printf("Header:\n");
-        printf("  To:         0x%08X (%s)\n", to, (to == 0xFFFFFFFF) ? "BROADCAST" : "DIRECT");
-        printf("  From:       0x%08X\n", from);
-        printf("  Packet ID:  0x%08X\n", packet_id);
-        printf("  Flags:      0x%02X\n", flags);
-        printf("    Hop Limit: %d\n", flags & 0x7);
-        printf("    Want ACK:  %s\n", (flags & 0x8) ? "YES" : "NO");
-        printf("    Via MQTT:  %s\n", (flags & 0x10) ? "YES" : "NO");
-        printf("    Hop Start: %d\n", (flags & 0xE0) >> 5);
-        printf("  Channel:    0x%02X (%d)\n", channel, channel);
-        printf("  Next Hop:   0x%02X\n", next_hop);
-        printf("  Relay Node: 0x%02X\n", relay_node);
-
-        // Parse payload (protobuf)
-        if (packet_len > 16) {
-            printf("\nPayload (%d bytes):\n", packet_len - 16);
-            printf("  Raw hex: ");
-            for (int i = 16; i < packet_len; i++) {
-                printf("%02x", packet_buffer[i]);
-            }
-            printf("\n");
-
-            // Simple protobuf parsing
-            int pos = 16;
-            printf("  Protobuf fields:\n");
-
-            while (pos < packet_len) {
-                uint8_t tag = packet_buffer[pos++];
-                uint8_t field_num = tag >> 3;
-                uint8_t wire_type = tag & 0x7;
-
-                printf("    Field %d (wire type %d): ", field_num, wire_type);
-
-                if (wire_type == 0) { // varint
-                    uint8_t value = packet_buffer[pos++];
-                    printf("varint = %d", value);
-                    if (field_num == 1) printf(" (portnum: %s)",
-                        value == 1 ? "TEXT_MESSAGE" : "UNKNOWN");
-                } else if (wire_type == 2) { // length-delimited
-                    uint8_t len = packet_buffer[pos++];
-                    printf("bytes[%d] = \"", len);
-                    for (int i = 0; i < len && pos < packet_len; i++) {
-                        char c = packet_buffer[pos++];
-                        printf("%c", (c >= 32 && c <= 126) ? c : '.');
-                    }
-                    printf("\"");
-                    if (field_num == 2) printf(" (payload)");
-                }
-                printf("\n");
-            }
-        }
-
-    } else {
-        printf("Failed to build packet (error: %d)\n", packet_len);
-    }
-
-    // Test decoding the hex string you used with Python
-    //printf("\n" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "=" "\n");
-    //decodeProtobufFromHex("ffffffffc96ed214a7f1d92a0ffb00000801122074686973206973204e4f542061206c65676974696d617465206d657373616765");
-
-    return 0;
-}
-
-// Decoded protobuf data structure
-typedef struct {
-    uint8_t portnum;
-    char payload_text[256];
-    std::size_t payload_len;
-    bool want_response;
-    uint32_t dest;
-    uint32_t source;
-    uint32_t request_id;
-    uint32_t reply_id;
-    uint32_t emoji;
-    uint32_t bitfield;
-    bool has_portnum;
-    bool has_payload;
-    bool has_want_response;
-    bool has_dest;
-    bool has_source;
-    bool has_request_id;
-    bool has_reply_id;
-    bool has_emoji;
-    bool has_bitfield;
-} DecodedDataMessage;
-
 // Function to parse a hex string into binary data
 int hexStringToBytes(const char* hex_str, uint8_t* output, int max_len) {
     int len = strlen(hex_str);
@@ -446,58 +301,58 @@ int decodeProtobufData(const uint8_t* data, int data_len, DecodedDataMessage* de
     return 0; // Success
 }
 
-// // Function to decode protobuf from hex string
-// void decodeProtobufFromHex(const char* hex_str) {
-//     printf("\n=== Decoding Protobuf from Hex ===\n");
+// Function to decode protobuf from hex string
+void decodeProtobufFromHex(const char* hex_str) {
+    printf("\n=== Decoding Protobuf from Hex ===\n");
 
-//     uint8_t packet_data[512];
-//     int packet_len = hexStringToBytes(hex_str, packet_data, sizeof(packet_data));
+    uint8_t packet_data[512];
+    int packet_len = hexStringToBytes(hex_str, packet_data, sizeof(packet_data));
 
-//     if (packet_len < 16) {
-//         printf("❌ Invalid packet: too short (need at least 16 bytes for header)\n");
-//         return;
-//     }
+    if (packet_len < 16) {
+        printf("❌ Invalid packet: too short (need at least 16 bytes for header)\n");
+        return;
+    }
 
-//     printf("Packet: %s\n", hex_str);
-//     printf("Length: %d bytes\n", packet_len);
+    printf("Packet: %s\n", hex_str);
+    printf("Length: %d bytes\n", packet_len);
 
-//     // Parse header first
-//     printf("\nHeader:\n");
-//     uint32_t to = (packet_data[0] << 24) | (packet_data[1] << 16) |
-//                  (packet_data[2] << 8) | packet_data[3];
-//     uint32_t from = (packet_data[4] << 24) | (packet_data[5] << 16) |
-//                    (packet_data[6] << 8) | packet_data[7];
-//     uint32_t packet_id = (packet_data[8] << 24) | (packet_data[9] << 16) |
-//                         (packet_data[10] << 8) | packet_data[11];
+    // Parse header first
+    printf("\nHeader:\n");
+    uint32_t to = (packet_data[0] << 24) | (packet_data[1] << 16) |
+                 (packet_data[2] << 8) | packet_data[3];
+    uint32_t from = (packet_data[4] << 24) | (packet_data[5] << 16) |
+                   (packet_data[6] << 8) | packet_data[7];
+    uint32_t packet_id = (packet_data[8] << 24) | (packet_data[9] << 16) |
+                        (packet_data[10] << 8) | packet_data[11];
 
-//     printf("  To: 0x%08X, From: 0x%08X, ID: 0x%08X\n", to, from, packet_id);
+    printf("  To: 0x%08X, From: 0x%08X, ID: 0x%08X\n", to, from, packet_id);
 
-//     // Decode protobuf payload
-//     if (packet_len > 16) {
-//         printf("\nProtobuf Data (%d bytes):\n", packet_len - 16);
+    // Decode protobuf payload
+    if (packet_len > 16) {
+        printf("\nProtobuf Data (%d bytes):\n", packet_len - 16);
 
-//         DecodedDataMessage decoded;
-//         int result = decodeProtobufData(&packet_data[16], packet_len - 16, &decoded);
+        DecodedDataMessage decoded;
+        int result = decodeProtobufData(&packet_data[16], packet_len - 16, &decoded);
 
-//         if (result == 0) {
-//             printf("\n✅ Successfully decoded protobuf!\n");
-//             printf("Summary:\n");
-//             if (decoded.has_portnum) {
-//                 printf("  Port: %d (%s)\n", decoded.portnum,
-//                     decoded.portnum == 1 ? "TEXT_MESSAGE" :
-//                     decoded.portnum == 3 ? "POSITION" :
-//                     decoded.portnum == 4 ? "NODEINFO" : "UNKNOWN");
-//             }
-//             if (decoded.has_payload) {
-//                 printf("  Message: \"%s\" (%zu bytes)\n", decoded.payload_text, decoded.payload_len);
-//             }
-//             if (decoded.has_want_response) {
-//                 printf("  Want Response: %s\n", decoded.want_response ? "true" : "false");
-//             }
-//         } else {
-//             printf("❌ Failed to decode protobuf\n");
-//         }
-//     } else {
-//         printf("No payload data\n");
-//     }
-// }
+        if (result == 0) {
+            printf("\n✅ Successfully decoded protobuf!\n");
+            printf("Summary:\n");
+            if (decoded.has_portnum) {
+                printf("  Port: %d (%s)\n", decoded.portnum,
+                    decoded.portnum == 1 ? "TEXT_MESSAGE" :
+                    decoded.portnum == 3 ? "POSITION" :
+                    decoded.portnum == 4 ? "NODEINFO" : "UNKNOWN");
+            }
+            if (decoded.has_payload) {
+                printf("  Message: \"%s\" (%zu bytes)\n", decoded.payload_text, decoded.payload_len);
+            }
+            if (decoded.has_want_response) {
+                printf("  Want Response: %s\n", decoded.want_response ? "true" : "false");
+            }
+        } else {
+            printf("❌ Failed to decode protobuf\n");
+        }
+    } else {
+        printf("No payload data\n");
+    }
+}

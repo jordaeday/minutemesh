@@ -50,6 +50,28 @@ typedef struct
   bool want_response; // want response flag
 } DataObj;
 
+typedef struct {
+    uint8_t portnum;
+    char payload_text[256];
+    std::size_t payload_len;
+    bool want_response;
+    uint32_t dest;
+    uint32_t source;
+    uint32_t request_id;
+    uint32_t reply_id;
+    uint32_t emoji;
+    uint32_t bitfield;
+    bool has_portnum;
+    bool has_payload;
+    bool has_want_response;
+    bool has_dest;
+    bool has_source;
+    bool has_request_id;
+    bool has_reply_id;
+    bool has_emoji;
+    bool has_bitfield;
+} DecodedDataMessage;
+
 // Channel identifier - minutemesh channel
 static const uint8_t MINUTEMESH_KEY[16] = {0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29,
                                            0x07, 0x59, 0xf0, 0xbc, 0xff, 0xab,
@@ -89,3 +111,11 @@ static int buildWirePacket(
     uint8_t,
     const DataObj *,
     const uint8_t *);
+
+int hexStringToBytes(const char*, uint8_t*, int);
+
+int readVarint(const uint8_t*, int, int, uint32_t*);
+
+int decodeProtobufData(const uint8_t*, int, DecodedDataMessage*);
+
+void decodeProtobufFromHex(const char*);
