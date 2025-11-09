@@ -34,7 +34,7 @@ public:
    * \returns  The length in bytes put into 'dest'. (rounded up to block size)
   */
   static int encrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len);
-  static void encryptAESCtr(uint8_t *nonce, size_t numBytes, uint8_t *bytes);
+  static void encryptAESCtr(uint32_t fromNode, uint64_t packetId, size_t numBytes, uint8_t *bytes);
 
   /**
    * \brief  Creates a 16-byte nonce from packet ID and node ID for encryption/decryption

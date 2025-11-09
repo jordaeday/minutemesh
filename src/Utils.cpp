@@ -95,17 +95,22 @@ int Utils::encrypt(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *s
   return dp - dest; // will always be multiple of 16
 }
 
-void Utils::encryptAESCtr(uint8_t *_nonce, size_t numBytes, uint8_t *bytes) {
+void Utils::encryptAESCtr(uint32_t fromNode, uint64_t packetId, size_t numBytes, uint8_t *bytes) {
+  uint8_t nonce[16] = { 0 };
+  makeNonce(nonce, fromNode, packetId);
+
+  //print nonce
+  Serial.print("Nonce: ");
+  for (size_t i = 0; i < 16; ++i)
+    Serial.printf("%x", nonce[i]);
+  Serial.printf("\n");
+  uint8_t temp[numBytes];
+  memcpy(temp, bytes, numBytes);
   CTR<AES128> ctr;
   ctr.setKey(minutemeshKey, sizeof(minutemeshKey));
-  static uint8_t scratch[256];
-  memcpy(scratch, bytes, numBytes);
-  memset(scratch + numBytes, 0,
-         sizeof(scratch) - numBytes); // Fill rest of buffer with zero (in case cypher looks at it)
-
-  ctr.setIV(_nonce, 16);
+  ctr.setIV(nonce, 16);
   ctr.setCounterSize(4);
-  ctr.encrypt(bytes, scratch, numBytes);
+  ctr.encrypt(bytes, temp, numBytes);
 }
 
 int Utils::encryptThenMAC(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *src, int src_len) {
