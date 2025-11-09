@@ -1,5 +1,7 @@
 #include "Utils.h"
+#include <CTR.h>
 #include <AES.h>
+#include <Crypto.h>
 #include <SHA256.h>
 
 #ifdef ARDUINO
@@ -41,6 +43,14 @@ int Utils::decrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* s
   return sp - src;  // will always be multiple of 16
 }
 
+void Utils::decryptAESCtr(const uint32_t fromNode, uint64_t packetId, size_t numBytes, uint8_t *bytes)
+{
+  uint8_t nonce[16] = {0};
+  // For CTR, the implementation is the same
+  // TODO extract the nonce using packetId
+  encryptAESCtr(nonce, numBytes, bytes);
+}
+
 int Utils::encrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len) {
   AES128 aes;
   uint8_t* dp = dest;
@@ -58,6 +68,30 @@ int Utils::encrypt(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* s
     dp += 16;
   }
   return dp - dest;  // will always be multiple of 16
+}
+
+void Utils::encryptAESCtr(uint8_t *_nonce, size_t numBytes, uint8_t *bytes)
+{
+  uint8_t key;
+  CTRCommon ctr;
+
+  // TODO extract the nonce
+  // TODO set the correct key
+  key = 0x0;
+  ctr = nullptr;
+  if (_key.length == 16)
+    ctr = new CTR<AES128>();
+  else
+    ctr = new CTR<AES256>();
+  ctr->setKey(key, key.length);
+  static uint8_t scratch[MAX_BLOCKSIZE];
+  memcpy(scratch, bytes, numBytes);
+  memset(scratch + numBytes, 0,
+         sizeof(scratch) - numBytes); // Fill rest of buffer with zero (in case cypher looks at it)
+
+  ctr->setIV(_nonce, 16);
+  ctr->setCounterSize(4);
+  ctr->encrypt(bytes, scratch, numBytes);
 }
 
 int Utils::encryptThenMAC(const uint8_t* shared_secret, uint8_t* dest, const uint8_t* src, int src_len) {
@@ -142,7 +176,7 @@ int Utils::parseTextParts(char* text, const char* parts[], int max_num, char sep
        *sp++ = 0;  // replace the seperator with a null, and skip past it
     }
   }
-  // if we hit the maximum parts, make sure LAST entry does NOT have separator 
+  // if we hit the maximum parts, make sure LAST entry does NOT have separator
   while (*sp && *sp != separator) sp++;
   if (*sp) {
     *sp = 0;  // replace the separator with null
