@@ -6,6 +6,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include "CraftPacket.h"
 namespace mesh {
 
 #define MAX_RX_DELAY_MILLIS 32000 // 32 seconds

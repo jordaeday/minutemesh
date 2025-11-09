@@ -1,47 +1,12 @@
+#include "CraftPacket.h"
+#include "Utils.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-// Forward declarations
-void decodeProtobufFromHex(const char* hex_str);
-
-// Port number enum
-enum PortNum {
-    PORTNUM_UNKNOWN = 0,           // binary - unknown packet format
-    PORTNUM_TEXT_MESSAGE = 1,      // utf-8 - chat message  
-    PORTNUM_REMOTE_HARDWARE = 2,   // NodeRemoteHardwarePinSchema
-    PORTNUM_POSITION = 3,          // PositionSchema
-    PORTNUM_NODEINFO = 4,          // UserSchema
-    PORTNUM_ROUTING = 5,           // RoutingSchema
-    PORTNUM_ADMIN = 6,             // AdminMessageSchema
-    PORTNUM_TEXT_COMPRESSED = 7,   // Unishox2 Compressed utf-8
-    PORTNUM_WAYPOINT = 8,          // WaypointSchema
-    PORTNUM_AUDIO = 9,             // codec2 packets
-    PORTNUM_DETECTION_SENSOR = 10,
-    PORTNUM_REPLY = 32,            // ping - replies to all packets
-    PORTNUM_IP_TUNNEL_APP = 33,
-    PORTNUM_SERIAL_APP = 64,
-    PORTNUM_STORE_FORWARD_APP = 65,
-    PORTNUM_RANGE_TEST_APP = 66,
-    PORTNUM_TELEMETRY_APP = 67,    // Telemetry
-    PORTNUM_ZPS_APP = 68,
-    PORTNUM_SIMULATOR_APP = 69,
-    PORTNUM_TRACEROUTE_APP = 70,   // traceroute
-    PORTNUM_NEIGHBORINFO_APP = 71,
-    PORTNUM_ATAK_PLUGIN = 72,
-    PORTNUM_MAP_REPORT_APP = 73    // Map report
-};
-
-// Channel identifier - minutemesh channel
-static const uint8_t MINUTEMESH_KEY[16] = {
-    0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59,
-    0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0xe5
-};
-
 static int tryDecryptChannelPacket(const uint8_t *packet, const uint8_t *channelKey, const uint8_t *extraNonce) {
-    // TODO: decrypt packet using channelKey and extraNonce
     return 0; // placeholder return
 }
 
@@ -100,46 +65,22 @@ static void uint32ToBytes(uint32_t value, uint8_t* bytes) {
  * Build a wire packet equivalent to JavaScript buildWirePacket function
  * Returns the packet length, or -1 on error
  */
-
-// Packet header structure
-typedef struct {
-    uint32_t to;           // destination node ID
-    uint32_t from;         // source node ID  
-    uint32_t packet_id;    // packet ID
-    uint8_t flags;         // packed flags byte
-    uint8_t channel;       // channel number
-    uint8_t next_hop;      // next hop node
-    uint8_t relay_node;    // relay node
-} PacketHeader;
-
-// Data object structure (simplified Mesh.DataSchema)
-typedef struct {
-    uint8_t portnum;       // port number
-    uint8_t* payload;      // message payload
-    size_t payload_len;    // payload length
-    bool want_response;    // want response flag
-} DataObj;
-
-/**
- * Build a wire packet equivalent to JavaScript buildWirePacket function
- * Returns the packet length, or -1 on error
- */
-static int buildWirePacket(uint8_t* output_buffer, size_t buffer_size,
-                          uint32_t to, uint32_t from, 
+static int buildWirePacket(uint8_t* output_buffer, std::size_t buffer_size,
+                          uint32_t to, uint32_t from,
                           uint8_t hop_limit, bool want_ack, bool via_mqtt, uint8_t hop_start,
                           uint8_t channel, uint8_t next_hop, uint8_t relay_node,
                           const DataObj* data_obj, const uint8_t* channel_key) {
-    
+
     if (!output_buffer || !data_obj || buffer_size < 16) {
         return -1; // Error: invalid parameters
     }
-    
+
     // Generate random packet ID (4 bytes)
     uint8_t packet_id_bytes[4];
     randomBytes(packet_id_bytes, 4);
-    uint32_t packet_id = (packet_id_bytes[0] << 24) | (packet_id_bytes[1] << 16) | 
+    uint32_t packet_id = (packet_id_bytes[0] << 24) | (packet_id_bytes[1] << 16) |
                         (packet_id_bytes[2] << 8) | packet_id_bytes[3];
-    
+
     // Create packet header (16 bytes)
     PacketHeader header;
     header.to = to;
@@ -149,7 +90,7 @@ static int buildWirePacket(uint8_t* output_buffer, size_t buffer_size,
     header.channel = channel;
     header.next_hop = next_hop;
     header.relay_node = relay_node;
-    
+
     // Write header to buffer in big-endian format
     uint32ToBytes(header.to, &output_buffer[0]);
     uint32ToBytes(header.from, &output_buffer[4]);
@@ -158,21 +99,21 @@ static int buildWirePacket(uint8_t* output_buffer, size_t buffer_size,
     output_buffer[13] = header.channel;
     output_buffer[14] = header.next_hop;
     output_buffer[15] = header.relay_node;
-    
+
     int packet_len = 16; // Header length
-    
+
     // Add payload if present
     if (data_obj->payload && data_obj->payload_len > 0) {
         // Simple protobuf encoding for portnum + payload
         uint8_t protobuf_buffer[512];
         int protobuf_len = 0;
-        
+
         // Field 1: portnum (varint)
         if (data_obj->portnum != 0) {
             protobuf_buffer[protobuf_len++] = (1 << 3) | 0; // field 1, wire type 0
             protobuf_buffer[protobuf_len++] = data_obj->portnum;
         }
-        
+
         // Field 2: payload (length-delimited)
         if (data_obj->payload_len > 0) {
             protobuf_buffer[protobuf_len++] = (2 << 3) | 2; // field 2, wire type 2
@@ -180,30 +121,30 @@ static int buildWirePacket(uint8_t* output_buffer, size_t buffer_size,
             memcpy(&protobuf_buffer[protobuf_len], data_obj->payload, data_obj->payload_len);
             protobuf_len += data_obj->payload_len;
         }
-        
+
         // Field 9: want_response (varint) - always include
         protobuf_buffer[protobuf_len++] = (9 << 3) | 0; // field 9, wire type 0
         protobuf_buffer[protobuf_len++] = data_obj->want_response ? 1 : 0;
-        
+
         // Check if we have enough space
         if (packet_len + protobuf_len > buffer_size) {
             return -1; // Not enough space
         }
-        
+
         // For now, copy protobuf data directly (without encryption)
         // In a real implementation, you'd encrypt here using channel_key
         // TODO: add encryption step (and decryption counterpart)
         memcpy(&output_buffer[packet_len], protobuf_buffer, protobuf_len);
         packet_len += protobuf_len;
     }
-    
+
     return packet_len;
 }
 
 // Main function for testing
 int main() {
     uint8_t packet_buffer[512];
-    
+
     // Create test message
     const char* message = "AA";
     DataObj data;
@@ -211,7 +152,7 @@ int main() {
     data.payload = (uint8_t*)message;
     data.payload_len = strlen(message);
     data.want_response = false;
-    
+
     int packet_len = buildWirePacket(
         packet_buffer, sizeof(packet_buffer),
         0xFFFFFFFF,     // to (broadcast)
@@ -236,29 +177,29 @@ int main() {
             printf("%02x", packet_buffer[i]);
         }
         printf("\n");
-        
+
         // Print just the protobuf part (after 16-byte header)
         printf("Protobuf hex: ");
         for (int i = 16; i < packet_len; i++) {
             printf("%02x", packet_buffer[i]);
         }
         printf("\n\n");
-        
+
         // Parse and display the packet
         printf("=== Packet Parsing ===\n");
-        
+
         // Parse header (first 16 bytes)
-        uint32_t to = (packet_buffer[0] << 24) | (packet_buffer[1] << 16) | 
+        uint32_t to = (packet_buffer[0] << 24) | (packet_buffer[1] << 16) |
                      (packet_buffer[2] << 8) | packet_buffer[3];
-        uint32_t from = (packet_buffer[4] << 24) | (packet_buffer[5] << 16) | 
+        uint32_t from = (packet_buffer[4] << 24) | (packet_buffer[5] << 16) |
                        (packet_buffer[6] << 8) | packet_buffer[7];
-        uint32_t packet_id = (packet_buffer[8] << 24) | (packet_buffer[9] << 16) | 
+        uint32_t packet_id = (packet_buffer[8] << 24) | (packet_buffer[9] << 16) |
                             (packet_buffer[10] << 8) | packet_buffer[11];
         uint8_t flags = packet_buffer[12];
         uint8_t channel = packet_buffer[13];
         uint8_t next_hop = packet_buffer[14];
         uint8_t relay_node = packet_buffer[15];
-        
+
         printf("Header:\n");
         printf("  To:         0x%08X (%s)\n", to, (to == 0xFFFFFFFF) ? "BROADCAST" : "DIRECT");
         printf("  From:       0x%08X\n", from);
@@ -271,7 +212,7 @@ int main() {
         printf("  Channel:    0x%02X (%d)\n", channel, channel);
         printf("  Next Hop:   0x%02X\n", next_hop);
         printf("  Relay Node: 0x%02X\n", relay_node);
-        
+
         // Parse payload (protobuf)
         if (packet_len > 16) {
             printf("\nPayload (%d bytes):\n", packet_len - 16);
@@ -280,22 +221,22 @@ int main() {
                 printf("%02x", packet_buffer[i]);
             }
             printf("\n");
-            
+
             // Simple protobuf parsing
             int pos = 16;
             printf("  Protobuf fields:\n");
-            
+
             while (pos < packet_len) {
                 uint8_t tag = packet_buffer[pos++];
                 uint8_t field_num = tag >> 3;
                 uint8_t wire_type = tag & 0x7;
-                
+
                 printf("    Field %d (wire type %d): ", field_num, wire_type);
-                
+
                 if (wire_type == 0) { // varint
                     uint8_t value = packet_buffer[pos++];
                     printf("varint = %d", value);
-                    if (field_num == 1) printf(" (portnum: %s)", 
+                    if (field_num == 1) printf(" (portnum: %s)",
                         value == 1 ? "TEXT_MESSAGE" : "UNKNOWN");
                 } else if (wire_type == 2) { // length-delimited
                     uint8_t len = packet_buffer[pos++];
@@ -310,7 +251,7 @@ int main() {
                 printf("\n");
             }
         }
-        
+
     } else {
         printf("Failed to build packet (error: %d)\n", packet_len);
     }
@@ -326,7 +267,7 @@ int main() {
 typedef struct {
     uint8_t portnum;
     char payload_text[256];
-    size_t payload_len;
+    std::size_t payload_len;
     bool want_response;
     uint32_t dest;
     uint32_t source;
@@ -351,34 +292,34 @@ int hexStringToBytes(const char* hex_str, uint8_t* output, int max_len) {
     if (len % 2 != 0 || len/2 > max_len) {
         return -1; // Invalid hex string or too long
     }
-    
+
     for (int i = 0; i < len; i += 2) {
         char hex_byte[3] = {hex_str[i], hex_str[i+1], '\0'};
         output[i/2] = (uint8_t)strtol(hex_byte, NULL, 16);
     }
-    
+
     return len / 2; // Return number of bytes
 }
 
 // Read varint from protobuf data (simplified for values < 128)
 int readVarint(const uint8_t* data, int pos, int max_pos, uint32_t* value) {
     if (pos >= max_pos) return -1;
-    
+
     *value = data[pos];
     if (*value < 128) {
         return pos + 1; // Single byte varint
     }
-    
+
     // Multi-byte varint (simplified - only handles up to 4 bytes)
     *value = data[pos] & 0x7F;
     pos++;
-    
+
     for (int i = 1; i < 4 && pos < max_pos; i++) {
         uint8_t byte = data[pos++];
         *value |= ((uint32_t)(byte & 0x7F)) << (7 * i);
         if (byte < 128) break;
     }
-    
+
     return pos;
 }
 
@@ -386,33 +327,33 @@ int readVarint(const uint8_t* data, int pos, int max_pos, uint32_t* value) {
 int decodeProtobufData(const uint8_t* data, int data_len, DecodedDataMessage* decoded) {
     // Initialize decoded structure
     memset(decoded, 0, sizeof(DecodedDataMessage));
-    
+
     int pos = 0;
-    
+
     while (pos < data_len) {
         if (pos >= data_len) break;
-        
+
         uint8_t tag = data[pos++];
         uint8_t field_num = tag >> 3;
         uint8_t wire_type = tag & 0x7;
-        
+
         printf("  Field %d (wire type %d): ", field_num, wire_type);
-        
+
         switch (wire_type) {
             case 0: { // varint
                 uint32_t value;
                 pos = readVarint(data, pos, data_len, &value);
                 if (pos < 0) return -1;
-                
+
                 printf("varint = %u", value);
-                
+
                 switch (field_num) {
                     case 1:
                         decoded->portnum = (uint8_t)value;
                         decoded->has_portnum = true;
-                        printf(" (portnum: %s)", 
-                            value == 1 ? "TEXT_MESSAGE" : 
-                            value == 3 ? "POSITION" : 
+                        printf(" (portnum: %s)",
+                            value == 1 ? "TEXT_MESSAGE" :
+                            value == 3 ? "POSITION" :
                             value == 4 ? "NODEINFO" : "UNKNOWN");
                         break;
                     case 3:
@@ -458,21 +399,21 @@ int decodeProtobufData(const uint8_t* data, int data_len, DecodedDataMessage* de
                 }
                 break;
             }
-            
+
             case 2: { // length-delimited (bytes/string)
                 if (pos >= data_len) return -1;
                 uint8_t len = data[pos++];
-                
+
                 printf("bytes[%d] = ", len);
-                
+
                 if (field_num == 2) { // payload field
                     decoded->has_payload = true;
                     decoded->payload_len = len;
-                    
+
                     if (len < sizeof(decoded->payload_text) - 1) {
                         memcpy(decoded->payload_text, &data[pos], len);
                         decoded->payload_text[len] = '\0'; // null terminate
-                        
+
                         printf("\"");
                         for (int i = 0; i < len; i++) {
                             char c = decoded->payload_text[i];
@@ -489,74 +430,74 @@ int decodeProtobufData(const uint8_t* data, int data_len, DecodedDataMessage* de
                     }
                     printf("\"");
                 }
-                
+
                 pos += len;
                 break;
             }
-            
+
             default:
                 printf("Unknown wire type %d", wire_type);
                 return -1; // Unknown wire type
         }
-        
+
         printf("\n");
     }
-    
+
     return 0; // Success
 }
 
-// Function to decode protobuf from hex string
-void decodeProtobufFromHex(const char* hex_str) {
-    printf("\n=== Decoding Protobuf from Hex ===\n");
-    
-    uint8_t packet_data[512];
-    int packet_len = hexStringToBytes(hex_str, packet_data, sizeof(packet_data));
-    
-    if (packet_len < 16) {
-        printf("❌ Invalid packet: too short (need at least 16 bytes for header)\n");
-        return;
-    }
-    
-    printf("Packet: %s\n", hex_str);
-    printf("Length: %d bytes\n", packet_len);
-    
-    // Parse header first
-    printf("\nHeader:\n");
-    uint32_t to = (packet_data[0] << 24) | (packet_data[1] << 16) | 
-                 (packet_data[2] << 8) | packet_data[3];
-    uint32_t from = (packet_data[4] << 24) | (packet_data[5] << 16) | 
-                   (packet_data[6] << 8) | packet_data[7];
-    uint32_t packet_id = (packet_data[8] << 24) | (packet_data[9] << 16) | 
-                        (packet_data[10] << 8) | packet_data[11];
-    
-    printf("  To: 0x%08X, From: 0x%08X, ID: 0x%08X\n", to, from, packet_id);
-    
-    // Decode protobuf payload
-    if (packet_len > 16) {
-        printf("\nProtobuf Data (%d bytes):\n", packet_len - 16);
-        
-        DecodedDataMessage decoded;
-        int result = decodeProtobufData(&packet_data[16], packet_len - 16, &decoded);
-        
-        if (result == 0) {
-            printf("\n✅ Successfully decoded protobuf!\n");
-            printf("Summary:\n");
-            if (decoded.has_portnum) {
-                printf("  Port: %d (%s)\n", decoded.portnum,
-                    decoded.portnum == 1 ? "TEXT_MESSAGE" :
-                    decoded.portnum == 3 ? "POSITION" :
-                    decoded.portnum == 4 ? "NODEINFO" : "UNKNOWN");
-            }
-            if (decoded.has_payload) {
-                printf("  Message: \"%s\" (%zu bytes)\n", decoded.payload_text, decoded.payload_len);
-            }
-            if (decoded.has_want_response) {
-                printf("  Want Response: %s\n", decoded.want_response ? "true" : "false");
-            }
-        } else {
-            printf("❌ Failed to decode protobuf\n");
-        }
-    } else {
-        printf("No payload data\n");
-    }
-}
+// // Function to decode protobuf from hex string
+// void decodeProtobufFromHex(const char* hex_str) {
+//     printf("\n=== Decoding Protobuf from Hex ===\n");
+
+//     uint8_t packet_data[512];
+//     int packet_len = hexStringToBytes(hex_str, packet_data, sizeof(packet_data));
+
+//     if (packet_len < 16) {
+//         printf("❌ Invalid packet: too short (need at least 16 bytes for header)\n");
+//         return;
+//     }
+
+//     printf("Packet: %s\n", hex_str);
+//     printf("Length: %d bytes\n", packet_len);
+
+//     // Parse header first
+//     printf("\nHeader:\n");
+//     uint32_t to = (packet_data[0] << 24) | (packet_data[1] << 16) |
+//                  (packet_data[2] << 8) | packet_data[3];
+//     uint32_t from = (packet_data[4] << 24) | (packet_data[5] << 16) |
+//                    (packet_data[6] << 8) | packet_data[7];
+//     uint32_t packet_id = (packet_data[8] << 24) | (packet_data[9] << 16) |
+//                         (packet_data[10] << 8) | packet_data[11];
+
+//     printf("  To: 0x%08X, From: 0x%08X, ID: 0x%08X\n", to, from, packet_id);
+
+//     // Decode protobuf payload
+//     if (packet_len > 16) {
+//         printf("\nProtobuf Data (%d bytes):\n", packet_len - 16);
+
+//         DecodedDataMessage decoded;
+//         int result = decodeProtobufData(&packet_data[16], packet_len - 16, &decoded);
+
+//         if (result == 0) {
+//             printf("\n✅ Successfully decoded protobuf!\n");
+//             printf("Summary:\n");
+//             if (decoded.has_portnum) {
+//                 printf("  Port: %d (%s)\n", decoded.portnum,
+//                     decoded.portnum == 1 ? "TEXT_MESSAGE" :
+//                     decoded.portnum == 3 ? "POSITION" :
+//                     decoded.portnum == 4 ? "NODEINFO" : "UNKNOWN");
+//             }
+//             if (decoded.has_payload) {
+//                 printf("  Message: \"%s\" (%zu bytes)\n", decoded.payload_text, decoded.payload_len);
+//             }
+//             if (decoded.has_want_response) {
+//                 printf("  Want Response: %s\n", decoded.want_response ? "true" : "false");
+//             }
+//         } else {
+//             printf("❌ Failed to decode protobuf\n");
+//         }
+//     } else {
+//         printf("No payload data\n");
+//     }
+// }
