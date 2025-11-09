@@ -110,4 +110,8 @@
 #define EXTERNAL_FLASH_DEVICES P25Q16H
 #define EXTERNAL_FLASH_USE_QSPI
 
+extern const int MISO;
+extern const int MOSI;
+extern const int SCK;
+
 #endif

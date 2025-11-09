@@ -1,13 +1,14 @@
 
 #include "MinuteDisplay.h"
+#include <SPI.h>
 
 #ifndef DISPLAY_ROTATION
   #define DISPLAY_ROTATION 3
 #endif
 
 bool MinuteDisplay::begin() {
-  display.epd2.selectSPI(SPI1, SPISettings(4000000, MSBFIRST, SPI_MODE0));
-  SPI1.begin();
+  display.epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
+  SPI.begin();
   display.init(115200, true, 2, false);
   display.setRotation(DISPLAY_ROTATION);
   setTextSize(1);  // Default to size 1
