@@ -82,14 +82,10 @@ void decodeProtobufFromHex(const char *);
 static int
 tryDecryptChannelPacket(const uint8_t *, const uint8_t *, const uint8_t *);
 
-static int *initNonce(const uint8_t, const uint8_t, const uint8_t);
-
-static char *encryptChannelPacket(
+static void encryptChannelPacket(
     const uint8_t *, const char *, const uint8_t, const uint8_t, const uint8_t);
 
 static int *uint32ToUnit8Array(uint32_t);
-
-static int *base64ToArrayBuffer(const char *);
 
 static void randomBytes(uint8_t *, int);
 
