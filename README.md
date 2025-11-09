@@ -1,10 +1,14 @@
 # minutemesh
 
-## Impersonation
-To impersonate a node, change the `pkt` variable to be `from:` the MAC address of the user you would like to impersonate **in little endian**. Change the message you want to send in `dataObj`. Change the channel you wish to send a message to by adding it to `CHANNELS` and `OUTBOUND_CHANNELS` (lines 13 and 22, respectively), and change the specified channel in lines 404 and 192 of `lorapipe-raw-packet.mjs`. Then run `node scripts/lorapipe-raw-packet.mjs`, copy the hex string, and broadcast that as your constructed packet.
+This project must be flashed to development board compatible with MeshCore. You need at least one other node to receive packets constructed by the firmware.
 
-## Message Modification
-TODO
+In August 2025, an exploit named [meshmarauder](https://meshmarauder.net/tutorial-01%20Background%20and%20Recommendations.html) was used to 'poison' the contact lists of users by capturing and rebroadcasting another node's NodeInfo packet after modifying the field containing their public key. Because NodeInfo packets are Trust-on-First-Use, they noted that nodes receiving a forged packet would associate the sender's MAC address with the illegitimate public key. In addition, this included user "name" information, which was modified to be "[WARNING] Meshtastic is insecure".
+
+Mesh networks are particularly useful in emergency communications, especially when existing infrastructures are unavailable. This technology currently being pitched as military or first-responder technology, keeping them secure is of massive importance.
+
+This project highlights numerous issues with Meshtastic's form of authentication in public and private channels, by allowing users to send a fake packet at the push of a button. By connecting to the serial port, users may send a packet with an arbitrary user ID and message.
+
+Currently, there is no counter-measure to this implemented in the Meshtastic protocol. Users may ignore other users, but doing so ignores the impersonated user, not the attacker.
 
 ## Built on:
 ## MeshTNC
@@ -64,7 +68,7 @@ Once connected, the MeshTNC device has a simple CLI. The CLI is largely similar 
  * `set radio <freq>,<bw>,<sf>,<coding-rate>,<syncword>` - Configure the radio
  * `serial mode kiss` - Switch to KISS mode
  * `rxlog on`
-   * Output format: ` [timestamp],[type=RXLOG],[rssi],[snr],[hex...]\n` 
+   * Output format: ` [timestamp],[type=RXLOG],[rssi],[snr],[hex...]\n`
  * `set`/`get txpower` - MeshCore's `set`/`get tx` has been renamed appropriately
 
  <details>
@@ -118,7 +122,7 @@ KISS mode allows for operating the LoRA radio as a KISS modem, which makes it co
 
 ## APRS over LoRa
 
-<img src="https://github.com/user-attachments/assets/ca4e8caf-5eff-44d3-8ff0-c9d57bfc6ca3" width="40%"></img> <img src="https://github.com/user-attachments/assets/aa4506dd-34b6-4277-af8e-3470ef8f8dfa" width="40%"></img> 
+<img src="https://github.com/user-attachments/assets/ca4e8caf-5eff-44d3-8ff0-c9d57bfc6ca3" width="40%"></img> <img src="https://github.com/user-attachments/assets/aa4506dd-34b6-4277-af8e-3470ef8f8dfa" width="40%"></img>
 
 You can use your favorite APRS tools with MeshTNC. Simply select a frequency, place the radio into kiss mode and connect to your APRS tools as a KISS TNC device.
 
