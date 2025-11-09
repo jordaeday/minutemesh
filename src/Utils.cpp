@@ -45,6 +45,8 @@ int Utils::decrypt(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *s
 
   return sp - src; // will always be multiple of 16
 }
+static const uint8_t minutemeshKey[] = { 0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59,
+                                       0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0xe5 };
 
 void Utils::decryptAESCtr(const uint32_t fromNode, uint64_t packetId, size_t numBytes, uint8_t *bytes) {
   uint8_t nonce[16] = { 0 };
@@ -52,7 +54,19 @@ void Utils::decryptAESCtr(const uint32_t fromNode, uint64_t packetId, size_t num
   // TODO extract the nonce using packetId
   memcpy(nonce, &packetId, sizeof(uint64_t));
   memcpy(nonce + sizeof(uint64_t), &fromNode, sizeof(uint32_t));
-  encryptAESCtr(nonce, numBytes, bytes);
+
+  //print nonce
+  Serial.print("Nonce: ");
+  for (size_t i = 0; i < 16; ++i)
+    Serial.printf("%x", nonce[i]);
+  Serial.printf("\n");
+  uint8_t temp[numBytes];
+  memcpy(temp, bytes, numBytes);
+  CTR<AES128> ctr;
+  ctr.setKey(minutemeshKey, sizeof(minutemeshKey));
+  ctr.setIV(nonce, 16);
+  ctr.setCounterSize(4);
+  ctr.decrypt(bytes, temp, numBytes);
 }
 
 int Utils::encrypt(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *src, int src_len) {
@@ -78,9 +92,7 @@ int Utils::encrypt(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *s
 
 void Utils::encryptAESCtr(uint8_t *_nonce, size_t numBytes, uint8_t *bytes) {
   CTR<AES128> ctr;
-  uint8_t key[16] = { 0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59,
-                      0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0xe5 };
-  ctr.setKey(key, sizeof(key));
+  ctr.setKey(minutemeshKey, sizeof(minutemeshKey));
   static uint8_t scratch[256];
   memcpy(scratch, bytes, numBytes);
   memset(scratch + numBytes, 0,
