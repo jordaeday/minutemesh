@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Dispatcher.h>
+#include <DisplayDriver.h>
 #include <MeshCore.h>
 
 
@@ -14,6 +15,7 @@ namespace mesh {
 class Mesh : public Dispatcher {
   RTCClock* _rtc;
   RNG* _rng;
+  DisplayDriver* _display;
 
 protected:
   DispatcherAction onRecvPacket(Packet* pkt) override;
@@ -22,7 +24,7 @@ protected:
     : Dispatcher(radio, ms, mgr)
   {
   }
-  
+
 public:
   void begin();
   void loop();
