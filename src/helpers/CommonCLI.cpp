@@ -387,7 +387,31 @@ void CommonCLI::handleCLICommand(
     bool s = _callbacks->formatFileSystem();
     sprintf(resp, "File system erase: %s", s ? "OK" : "Err");
   } else if (memcmp(command, "craft_packet ", 13) == 0) {
-    const char* message = &command[13];
+    const char* params = &command[13];
+    
+    // Parse parameters: from_address message
+    // Format: craft_packet 0x12345678 Hello World
+    // Or:     craft_packet Hello World (uses default from address)
+    
+    uint32_t from_address = 0x14D26EC9; // Default VimCard address
+    const char* message = params;
+    
+    // Check if first parameter looks like a hex address
+    if (params[0] == '0' && params[1] == 'x') {
+      // Find the space after the hex address
+      const char* space_pos = strchr(params, ' ');
+      if (space_pos != nullptr) {
+        // Extract hex address
+        char hex_str[16];
+        int hex_len = space_pos - params;
+        if (hex_len < sizeof(hex_str)) {
+          strncpy(hex_str, params, hex_len);
+          hex_str[hex_len] = '\0';
+          from_address = strtoul(hex_str, nullptr, 16);
+          message = space_pos + 1; // Skip the space
+        }
+      }
+    }
     
     // Create a custom packet using buildWirePacket
     uint8_t packet_buffer[256];
@@ -405,7 +429,7 @@ void CommonCLI::handleCLICommand(
     int packet_len = buildWirePacket(
         packet_buffer, sizeof(packet_buffer),
         0xFFFFFFFF,     // to (broadcast)
-        0x14D26EC9,     // from (example node ID) (VimCard)
+        from_address,   // from (user-specified or default)
         7,              // hop_limit
         true,           // want_ack
         false,          // via_mqtt
@@ -422,7 +446,8 @@ void CommonCLI::handleCLICommand(
         mesh::Packet* pkt = _mesh->obtainNewPacket();
         pkt->readFrom(packet_buffer, packet_len);
         _mesh->sendPacket(pkt, 1);
-        sprintf(resp, "Crafted packet sent (%d bytes): %s", packet_len, message);
+        sprintf(resp, "Crafted packet sent (%d bytes) from 0x%08X: %s", 
+                packet_len, from_address, message);
     } else {
         strcpy(resp, "Error: Failed to build packet");
     }
