@@ -405,7 +405,7 @@ void CommonCLI::handleCLICommand(
     int packet_len = buildWirePacket(
         packet_buffer, sizeof(packet_buffer),
         0xFFFFFFFF,     // to (broadcast)
-        0xC96ED214,     // from (example node ID)
+        0x14D26EC9,     // from (example node ID) (VimCard)
         7,              // hop_limit
         true,           // want_ack
         false,          // via_mqtt

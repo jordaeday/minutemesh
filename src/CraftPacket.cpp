@@ -76,7 +76,7 @@ buildWirePacket(
   }
 
   // Generate random packet ID (4 bytes)
-  uint8_t packet_id_bytes[4];
+  uint8_t packet_id_bytes[4] = {0};
   randomBytes(packet_id_bytes, 4);
   uint32_t packet_id = ((uint32_t)packet_id_bytes[0] << 24) |
                        ((uint32_t)packet_id_bytes[1] << 16) |
@@ -95,8 +95,8 @@ buildWirePacket(
 
   // Write header to buffer in big-endian format
   uint32ToBytes(header.to, &output_buffer[0]);
-  uint32ToBytes(header.from, &output_buffer[4]);
-  uint32ToBytes(header.packet_id, &output_buffer[8]);
+  memcpy(&output_buffer[4], &header.from, 4);
+  memcpy(&output_buffer[8], &header.packet_id, 4);
   output_buffer[12] = header.flags;
   output_buffer[13] = header.channel;
   output_buffer[14] = header.next_hop;
@@ -154,7 +154,7 @@ buildWirePacket(
     printf("\n");
     // Encrypt the protobuf data in-place using AES-CTR
     mesh::Utils::encryptAESCtr(
-        header.from, header.packet_id, protobuf_len,
+        header.from, (uint64_t)header.packet_id, protobuf_len,
         output_buffer + packet_len);
 
     packet_len += protobuf_len;
