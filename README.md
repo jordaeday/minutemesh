@@ -1,3 +1,12 @@
+# minutemesh
+
+## Impersonation
+To impersonate a node, change the `pkt` variable to be `from:` the MAC address of the user you would like to impersonate **in little endian**. Change the message you want to send in `dataObj`. Change the channel you wish to send a message to by adding it to `CHANNELS` and `OUTBOUND_CHANNELS` (lines 13 and 22, respectively), and change the specified channel in lines 404 and 192 of `lorapipe-raw-packet.mjs`. Then run `node scripts/lorapipe-raw-packet.mjs`, copy the hex string, and broadcast that as your constructed packet.
+
+## Message Modification
+TODO
+
+## Built on:
 ## MeshTNC
 
 [![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)[![license](https://img.shields.io/github/license/datapartyjs/MeshTNC)](https://github.com/datapartyjs/MeshTNC/blob/master/license.txt)
