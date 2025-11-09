@@ -18,7 +18,7 @@ Run the `./build.sh` script with the arguments `build-firmware` and whatever dev
 
 After flashing the firmware to the device, run the command `craft_packet` with your message to send the message to the minutemesh channel from the default radio, VimCard. To specify a different "sending" radio, add the MAC address of the radio as an argument before the message.
 
-To specify a different channel, modify `MINUTEMESH_KEY` located in [CraftPacket.h](./src/CraftPacket.h) with the channel key and modify the channel hash in [CommonCli.cpp](./src/helpers/CommonCli.cpp:437).
+To specify a different channel, modify `MINUTEMESH_KEY` located in [CraftPacket.h](./src/CraftPacket.h) with the channel key and modify the channel hash in [CommonCLI.cpp](./src/helpers/CommonCLI.cpp:437).
 
 
 ## Built on:
