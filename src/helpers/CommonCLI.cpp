@@ -386,7 +386,7 @@ void CommonCLI::handleCLICommand(
   } else if (sender_timestamp == 0 && strcmp(command, "erase") == 0) {
     bool s = _callbacks->formatFileSystem();
     sprintf(resp, "File system erase: %s", s ? "OK" : "Err");
-  } else if (memcmp(command, "craft packet ", 13) == 0) {
+  } else if (memcmp(command, "craft_packet ", 13) == 0) {
     const char* message = &command[13];
     
     // Create a custom packet using buildWirePacket
