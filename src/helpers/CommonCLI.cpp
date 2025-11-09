@@ -390,7 +390,7 @@ void CommonCLI::handleCLICommand(
     const char* message = &command[13];
     
     // Create a custom packet using buildWirePacket
-    uint8_t packet_buffer[512];
+    uint8_t packet_buffer[256];
     int message_len = strlen(message);
     if (message_len > 63) message_len = 63;  // Limit message length
     
@@ -405,7 +405,7 @@ void CommonCLI::handleCLICommand(
     int packet_len = buildWirePacket(
         packet_buffer, sizeof(packet_buffer),
         0xFFFFFFFF,     // to (broadcast)
-        0xC96ED214,     // from (example node ID)
+        0x14D26EC9,     // from (example node ID) (VimCard)
         7,              // hop_limit
         true,           // want_ack
         false,          // via_mqtt
