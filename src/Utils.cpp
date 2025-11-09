@@ -48,17 +48,17 @@ int Utils::decrypt(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *s
 static const uint8_t minutemeshKey[] = { 0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59,
                                        0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0xe5 };
 
+void Utils::makeNonce(uint8_t *nonce, const uint32_t fromNode, const uint64_t packetId) {
+  memset(nonce, 0, 16);
+  memcpy(nonce, &packetId, sizeof(uint64_t));
+  memcpy(nonce + sizeof(uint64_t), &fromNode, sizeof(uint32_t));
+}
+
 void Utils::decryptAESCtr(const uint32_t fromNode, uint64_t packetId, size_t numBytes, uint8_t *bytes) {
-  uint8_t nonce[16] = { 0 };
   // For CTR, the implementation is the same
   // TODO extract the nonce using packetId
-  uint64_t id = packetId;
-  //print id
-  for (int i = 0; i < 8; ++i)
-    Serial.printf("%x", (uint8_t)(id >> (56 - i * 8)));
-  memcpy(nonce, &id, sizeof(uint64_t));
-  uint32_t fn = fromNode;
-  memcpy(nonce + sizeof(uint64_t), &fn, sizeof(uint32_t));
+  uint8_t nonce[16] = { 0 };
+  makeNonce(nonce, fromNode, packetId);
 
   //print nonce
   Serial.print("Nonce: ");
@@ -95,17 +95,22 @@ int Utils::encrypt(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *s
   return dp - dest; // will always be multiple of 16
 }
 
-void Utils::encryptAESCtr(uint8_t *_nonce, size_t numBytes, uint8_t *bytes) {
+void Utils::encryptAESCtr(uint32_t fromNode, uint64_t packetId, size_t numBytes, uint8_t *bytes) {
+  uint8_t nonce[16] = { 0 };
+  makeNonce(nonce, fromNode, packetId);
+
+  //print nonce
+  Serial.print("Nonce: ");
+  for (size_t i = 0; i < 16; ++i)
+    Serial.printf("%x", nonce[i]);
+  Serial.printf("\n");
+  uint8_t temp[numBytes];
+  memcpy(temp, bytes, numBytes);
   CTR<AES128> ctr;
   ctr.setKey(minutemeshKey, sizeof(minutemeshKey));
-  static uint8_t scratch[256];
-  memcpy(scratch, bytes, numBytes);
-  memset(scratch + numBytes, 0,
-         sizeof(scratch) - numBytes); // Fill rest of buffer with zero (in case cypher looks at it)
-
-  ctr.setIV(_nonce, 16);
+  ctr.setIV(nonce, 16);
   ctr.setCounterSize(4);
-  ctr.encrypt(bytes, scratch, numBytes);
+  ctr.encrypt(bytes, temp, numBytes);
 }
 
 int Utils::encryptThenMAC(const uint8_t *shared_secret, uint8_t *dest, const uint8_t *src, int src_len) {
