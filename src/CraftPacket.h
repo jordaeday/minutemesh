@@ -79,21 +79,7 @@ static const uint8_t MINUTEMESH_KEY[16] = {0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29,
 
 void decodeProtobufFromHex(const char *);
 
-static int
-tryDecryptChannelPacket(const uint8_t *, const uint8_t *, const uint8_t *);
-
-static void encryptChannelPacket(
-    const uint8_t *, const char *, const uint8_t, const uint8_t, const uint8_t);
-
-static int *uint32ToUnit8Array(uint32_t);
-
-static void randomBytes(uint8_t *, int);
-
-static uint8_t packFlagsByte(uint8_t, bool, bool, uint8_t);
-
-static void uint32ToBytes(uint32_t, uint8_t *);
-
-static int buildWirePacket(
+int buildWirePacket(
     uint8_t *,
     std::size_t,
     uint32_t,

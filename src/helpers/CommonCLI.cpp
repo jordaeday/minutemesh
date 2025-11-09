@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "CommonCLI.h"
 #include "TxtDataHelpers.h"
+#include "../CraftPacket.h"
 #include <RTClib.h>
 
 // Believe it or not, this std C function is busted on some platforms!
@@ -385,6 +386,46 @@ void CommonCLI::handleCLICommand(
   } else if (sender_timestamp == 0 && strcmp(command, "erase") == 0) {
     bool s = _callbacks->formatFileSystem();
     sprintf(resp, "File system erase: %s", s ? "OK" : "Err");
+  } else if (memcmp(command, "craft packet ", 13) == 0) {
+    const char* message = &command[13];
+    
+    // Create a custom packet using buildWirePacket
+    uint8_t packet_buffer[512];
+    int message_len = strlen(message);
+    if (message_len > 63) message_len = 63;  // Limit message length
+    
+    // Create data object for the message
+    DataObj data;
+    data.portnum = PORTNUM_TEXT_MESSAGE;
+    data.payload = (uint8_t*)message;
+    data.payload_len = message_len;
+    data.want_response = false;
+    
+    // Build the wire packet
+    int packet_len = buildWirePacket(
+        packet_buffer, sizeof(packet_buffer),
+        0xFFFFFFFF,     // to (broadcast)
+        0xC96ED214,     // from (example node ID)
+        7,              // hop_limit
+        true,           // want_ack
+        false,          // via_mqtt
+        0,              // hop_start
+        0xFB,           // channel (minutemesh channel)
+        0,              // next_hop
+        0,              // relay_node
+        &data,          // data object
+        MINUTEMESH_KEY  // channel key
+    );
+    
+    if (packet_len > 0) {
+        // Send the crafted packet through the mesh
+        mesh::Packet* pkt = _mesh->obtainNewPacket();
+        pkt->readFrom(packet_buffer, packet_len);
+        _mesh->sendPacket(pkt, 1);
+        sprintf(resp, "Crafted packet sent (%d bytes): %s", packet_len, message);
+    } else {
+        strcpy(resp, "Error: Failed to build packet");
+    }
   } else if (memcmp(command, "ver", 3) == 0) {
     sprintf(resp,
             "%s (Build: %s)",

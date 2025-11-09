@@ -51,7 +51,7 @@ static void uint32ToBytes(uint32_t value, uint8_t* bytes) {
  * Build a wire packet equivalent to JavaScript buildWirePacket function
  * Returns the packet length, or -1 on error
  */
-static int buildWirePacket(uint8_t* output_buffer, std::size_t buffer_size,
+int buildWirePacket(uint8_t* output_buffer, std::size_t buffer_size,
                           uint32_t to, uint32_t from,
                           uint8_t hop_limit, bool want_ack, bool via_mqtt, uint8_t hop_start,
                           uint8_t channel, uint8_t next_hop, uint8_t relay_node,
