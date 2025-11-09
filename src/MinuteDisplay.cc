@@ -75,6 +75,7 @@ void MinuteDisplay::setCursor(int x, int y) {
 }
 
 void MinuteDisplay::print(const char* str) {
+  Serial.println("Printing. :)");
   display_crc.update<char>(str, strlen(str));
   display.print(str);
 }

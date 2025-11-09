@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <Arduino.h>
 
 class DisplayDriver {
   int _w, _h;

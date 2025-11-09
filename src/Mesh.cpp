@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include <Arduino.h>
 
 namespace mesh {
 
@@ -7,6 +8,7 @@ void Mesh::begin() {
   uint16_t versionWidth = _display->getTextWidth(_text);
   _display->setCursor((_display->width() - versionWidth) / 2, 22);
   _display->print("MinuteMesh");
+  Serial.printf("Printed to screen.\n");
   Dispatcher::begin();
 }
 
