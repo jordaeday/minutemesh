@@ -1,5 +1,5 @@
 #include "Dispatcher.h"
-
+#define MESH_PACKET_LOGGING 1
 #if MESH_PACKET_LOGGING
   #include <Arduino.h>
 #endif
@@ -114,6 +114,20 @@ void Dispatcher::checkRecv() {
     int len = _radio->recvRaw(raw, MAX_TRANS_UNIT);
     if (len > 0) {
       logRxRaw(_radio->getLastSNR(), _radio->getLastRSSI(), raw, len);
+
+      Serial.println("====BEGIN OWN PROCESSES====");
+      for (size_t i = 0; i < len; ++i)
+        Serial.printf("%x", raw[i]);
+      Serial.printf("\n");
+      size_t encrypted_len  = 255 - 16; // rest is data
+      uint8_t decrypted[encrypted_len] = {0};
+      Utils::decryptAESCtr((uint32_t)raw+4,(uint64_t)raw+8,encrypted_len,decrypted);
+      Serial.print("Decrypted: ");
+      for (size_t i = 0; i < encrypted_len; ++i)
+        Serial.printf("%x", decrypted[i]);
+      Serial.printf("\n");
+
+      Serial.println("====END OWN PROCESSES====");
 
       pkt = _mgr->allocNew();
       if (pkt == NULL) {

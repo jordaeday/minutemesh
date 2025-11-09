@@ -102,9 +102,6 @@ int RadioLibWrapper::recvRaw(uint8_t* bytes, int sz) {
     if (len > 0) {
       if (len > sz) { len = sz; }
       int err = _radio->readData(bytes, len);
-      for (size_t i = 0; i < len; ++i)
-        Serial.printf("%x", bytes[i]);
-      Serial.printf("\n");
       if (err != RADIOLIB_ERR_NONE) {
         MESH_DEBUG_PRINTLN("RadioLibWrapper: error: readData(%d)", err);
         len = 0;
