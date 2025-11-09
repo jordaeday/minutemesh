@@ -16,7 +16,7 @@
 
 #include "DisplayDriver.h"
 
-class GxEPDDisplay : public DisplayDriver {
+class MinuteDisplay : public DisplayDriver {
 
   GxEPD2_BW<EINK_DISPLAY_MODEL, EINK_DISPLAY_MODEL::HEIGHT> display;
   const float scale_x  = EINK_SCALE_X;
@@ -30,7 +30,7 @@ class GxEPDDisplay : public DisplayDriver {
   int last_display_crc_value = 0;
 
 public:
-  GxEPDDisplay() : DisplayDriver(128, 128), display(EINK_DISPLAY_MODEL(PIN_DISPLAY_CS, PIN_DISPLAY_DC, PIN_DISPLAY_RST, PIN_DISPLAY_BUSY)) {}
+  MinuteDisplay() : DisplayDriver(128, 128), display(EINK_DISPLAY_MODEL(PIN_DISPLAY_CS, PIN_DISPLAY_DC, PIN_DISPLAY_RST, PIN_DISPLAY_BUSY)) {}
 
   bool begin();
 
