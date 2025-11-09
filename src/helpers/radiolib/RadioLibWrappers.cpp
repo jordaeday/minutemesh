@@ -15,7 +15,7 @@ static volatile uint8_t state = STATE_IDLE;
 
 // this function is called when a complete packet
 // is transmitted by the module
-static 
+static
 #if defined(ESP8266) || defined(ESP32)
   ICACHE_RAM_ATTR
 #endif
@@ -102,6 +102,9 @@ int RadioLibWrapper::recvRaw(uint8_t* bytes, int sz) {
     if (len > 0) {
       if (len > sz) { len = sz; }
       int err = _radio->readData(bytes, len);
+      for (size_t i = 0; i < len; ++i)
+        Serial.printf("%08c", bytes[i]);
+      Serial.printf("\n");
       if (err != RADIOLIB_ERR_NONE) {
         MESH_DEBUG_PRINTLN("RadioLibWrapper: error: readData(%d)", err);
         len = 0;
@@ -156,7 +159,7 @@ void RadioLibWrapper::onSendFinished() {
 }
 
 bool RadioLibWrapper::isChannelActive() {
-  return _threshold == 0 
+  return _threshold == 0
           ? false    // interference check is disabled
           : getCurrentRSSI() > _noise_floor + _threshold;
 }
@@ -177,10 +180,10 @@ static float snr_threshold[] = {
     -17.5,// SF11 needs at least -17.5 dB SNR
     -20   // SF12 needs at least -20 dB SNR
 };
-  
+
 float RadioLibWrapper::packetScoreInt(float snr, int sf, int packet_len) {
   if (sf < 7) return 0.0f;
-  
+
   if (snr < snr_threshold[sf - 7]) return 0.0f;    // Below threshold, no chance of success
 
   auto success_rate_based_on_snr = (snr - snr_threshold[sf - 7]) / 10.0;
