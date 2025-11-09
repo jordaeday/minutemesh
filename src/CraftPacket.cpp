@@ -10,15 +10,8 @@ static int tryDecryptChannelPacket(const uint8_t *packet, const uint8_t *channel
     return 0; // placeholder return
 }
 
-static int* initNonce(const uint8_t from, const uint8_t packetId, const uint8_t extraNonce[8]) {
-    // TODO: initialize nonce array
-    static int nonce[12] = {0}; // placeholder initialization
-    return nonce;
-}
-
-static char* encryptChannelPacket(const uint8_t *channelKey, const char* payload, const uint8_t from, const uint8_t packetId, const uint8_t extraNonce[8]) {
-    // TODO: encrypt payload using channelKey, from, packetId, and extraNonce
-    return NULL; // placeholder return
+static void encryptChannelPacket(const uint8_t *channelKey, const char* payload, const uint8_t from, const uint8_t packetId, const uint8_t extraNonce[8]) {
+    mesh::Utils::encryptAESCtr(from, packetId, strlen(payload), (uint8_t*)payload);
 }
 
 static int* uint32ToUnit8Array(uint32_t value) {
@@ -27,13 +20,6 @@ static int* uint32ToUnit8Array(uint32_t value) {
     arr[1] = (value >> 16) & 0xFF;
     arr[2] = (value >> 8) & 0xFF;
     arr[3] = value & 0xFF;
-    return arr;
-}
-
-static int* base64ToArrayBuffer(const char* base64Str) {
-    // TODO: convert base64 string to array buffer
-    // maybe don't need this function??? (probably)
-    static int arr[256]; // placeholder size
     return arr;
 }
 
@@ -131,10 +117,16 @@ static int buildWirePacket(uint8_t* output_buffer, std::size_t buffer_size,
             return -1; // Not enough space
         }
 
-        // For now, copy protobuf data directly (without encryption)
-        // In a real implementation, you'd encrypt here using channel_key
-        // TODO: add encryption step (and decryption counterpart)
+        // Create nonce for encryption using makeNonce function
+        uint8_t nonce[16];
+        mesh::Utils::makeNonce(nonce, header.from, header.packet_id);
+        
+        // Copy protobuf data to output buffer for in-place encryption
         memcpy(&output_buffer[packet_len], protobuf_buffer, protobuf_len);
+        
+        // Encrypt the protobuf data in-place using AES-CTR
+        encryptChannelPacket(channel_key, (const char*)&output_buffer[packet_len], header.from, header.packet_id, nonce);
+        
         packet_len += protobuf_len;
     }
 
