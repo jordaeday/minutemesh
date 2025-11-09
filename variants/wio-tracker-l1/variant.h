@@ -90,6 +90,15 @@
 #define PIN_GPS_STANDBY         (0)
 #define PIN_GPS_EN              (18)
 
+#define PIN_DISPLAY_CS          (36)
+#define PIN_DISPLAY_BUSY        (35)
+#define PIN_DISPLAY_DC          (34)
+#define PIN_DISPLAY_RST         (32)
+
+#define PIN_SPI1_MISO           (37)
+#define PIN_SPI1_MOSI           (33)
+#define PIN_SPI1_SCK            (31)
+
 // QSPI Pins
 #define PIN_QSPI_SCK            (21)
 #define PIN_QSPI_CS             (22)
