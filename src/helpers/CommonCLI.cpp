@@ -390,7 +390,7 @@ void CommonCLI::handleCLICommand(
     const char* message = &command[13];
     
     // Create a custom packet using buildWirePacket
-    uint8_t packet_buffer[512];
+    uint8_t packet_buffer[256];
     int message_len = strlen(message);
     if (message_len > 63) message_len = 63;  // Limit message length
     
