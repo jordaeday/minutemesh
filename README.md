@@ -1,5 +1,7 @@
 # minutemesh
 
+<img width="806" height="421" alt="image" src="https://github.com/user-attachments/assets/621872c1-9ca5-4ba2-ac2d-f80e9217360f" />
+
 This project must be flashed to development board compatible with MeshCore. You need at least one other node to receive packets constructed by the firmware.
 
 In August 2025, an exploit named [meshmarauder](https://meshmarauder.net/tutorial-01%20Background%20and%20Recommendations.html) was used to 'poison' the contact lists of users by capturing and rebroadcasting another node's NodeInfo packet after modifying the field containing their public key. Because NodeInfo packets are Trust-on-First-Use, they noted that nodes receiving a forged packet would associate the sender's MAC address with the illegitimate public key. In addition, this included user "name" information, which was modified to be "[WARNING] Meshtastic is insecure".
@@ -17,6 +19,7 @@ Run the `./build.sh` script with the arguments `build-firmware` and whatever dev
 After flashing the firmware to the device, run the command `craft_packet` with your message to send the message to the minutemesh channel from the default radio, VimCard. To specify a different "sending" radio, add the MAC address of the radio as an argument before the message.
 
 To specify a different channel, modify `MINUTEMESH_KEY` located in [CraftPacket.h](./src/CraftPacket.h) with the channel key and modify the channel hash in [CommonCli.cpp](./src/helpers/CommonCli.cpp:437).
+
 
 ## Built on:
 ## MeshTNC
