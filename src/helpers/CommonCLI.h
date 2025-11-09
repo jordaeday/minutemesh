@@ -60,14 +60,14 @@ class CommonCLI {
   char _tmp[80];
   char _cmd[CMD_BUF_LEN_MAX];
   KISSModem _kiss;
-
+public:
   mesh::RTCClock* getRTCClock() { return _rtc; }
   void savePrefs();
   void loadPrefsInt(FILESYSTEM* _fs, const char* filename);
   void parseSerialCLI();
   void handleCLICommand(uint32_t sender_timestamp, const char* command, char* resp);
 
-public:
+
   CommonCLI(mesh::MainBoard& board, mesh::RTCClock& rtc, NodePrefs* prefs, CommonCLICallbacks* callbacks, mesh::Mesh* mesh)
       : _board(&board), _rtc(&rtc), _prefs(prefs), _callbacks(callbacks), _mesh(mesh), _kiss(&_cli_mode, mesh) {
         _cmd[0] = 0;

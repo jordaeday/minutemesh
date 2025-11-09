@@ -289,4 +289,11 @@ void loop() {
   if (Serial.available())
     the_mesh.handleSerialData();
   the_mesh.loop();
+        int status = digitalRead(PIN_BUTTON1);
+  if (status == LOW) {
+
+    Serial.println("Button pressed - sending test packet");
+    the_mesh.getCLI()->handleCLICommand(9, "craft_packet 0xdeadbeef This is not a legit message!", nullptr);
+    delay(100);
+  }
 }
