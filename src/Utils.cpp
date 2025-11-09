@@ -52,8 +52,13 @@ void Utils::decryptAESCtr(const uint32_t fromNode, uint64_t packetId, size_t num
   uint8_t nonce[16] = { 0 };
   // For CTR, the implementation is the same
   // TODO extract the nonce using packetId
-  memcpy(nonce, &packetId, sizeof(uint64_t));
-  memcpy(nonce + sizeof(uint64_t), &fromNode, sizeof(uint32_t));
+  uint64_t id = packetId;
+  //print id
+  for (int i = 0; i < 8; ++i)
+    Serial.printf("%x", (uint8_t)(id >> (56 - i * 8)));
+  memcpy(nonce, &id, sizeof(uint64_t));
+  uint32_t fn = fromNode;
+  memcpy(nonce + sizeof(uint64_t), &fn, sizeof(uint32_t));
 
   //print nonce
   Serial.print("Nonce: ");

@@ -128,9 +128,13 @@ void Dispatcher::checkRecv() {
       packet_id |= ((uint64_t)raw[9] << (64 - 24));
       packet_id |= ((uint64_t)raw[10] << (64 - 16));
       packet_id |= ((uint64_t)raw[11] << (64 - 8));
-
-      Serial.print("Packet ID: ");
-      Utils::decryptAESCtr((uint32_t)raw[3], packet_id, encrypted_len, decrypted);
+      packet_id >>=32;
+      uint32_t fromNode = 0;
+      fromNode |= ((uint32_t)raw[7] << 24);
+      fromNode |= ((uint32_t)raw[6] << 16);
+      fromNode |= ((uint32_t)raw[5] << 8);
+      fromNode |= ((uint32_t)raw[4] << 0);
+      Utils::decryptAESCtr(fromNode, packet_id, encrypted_len, decrypted);
       Serial.print("Decrypted: ");
       for (size_t i = 0; i < encrypted_len; ++i)
         Serial.printf("%x", decrypted[i]);
