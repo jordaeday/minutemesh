@@ -1,0 +1,1 @@
+FIRMWARE_VERSION=minute-mesh ./build.sh build-firmware WioTrackerL1_Repeater
